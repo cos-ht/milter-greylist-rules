@@ -1,0 +1,31 @@
+### Blacklist: quickly drop those sick who we don't want connecting directly.
+### This is a blacklist of known domains and addresses that sent SPAM and
+### worms to us and did not choose to heal when told...
+### This list goes after the whitelist of owned senders and before the list
+### of other ("trusted") acceptable senders. 
+
+### Config shared by different relays in the set:
+### $Id: milter-greylist.conf-09-blacklist-relays,v 1.6 2014/02/04 01:36:43 jim Exp $
+
+list "blacklist-ipaddr-wormers" addr {	\
+	194.85.80.109 \
+}
+
+list "blacklist-domain-wormers" domain { \
+	fairgamemail.us		\
+	ip-dsl-ngp.eth.net	\
+	dip0.t-ipconnect.de	\
+	cps.virtua.com.br	\
+	pool-a.gline.hu 	\
+	pool.ukrtel.net 	\
+	tts.nov.ru		\
+	mdp2.net		\
+}
+
+racl blacklist list "blacklist-ipaddr-wormers" \
+	log "MGL-REJECT: %P{conninfo}: static-blacklisted by rule %a, delay %R" \
+	msg "MGL-REJECT: You were last known as a long-sick mail wormer. We don't want your kind here. Contact %P{contact} if you have healed."
+
+racl blacklist list "blacklist-domain-wormers" \
+	log "MGL-REJECT: %P{conninfo}: static-blacklisted by rule %a, delay %R" \
+	msg "MGL-REJECT: You were last known as a long-sick mail wormer. We don't want your kind here. Contact %P{contact} if you have healed."

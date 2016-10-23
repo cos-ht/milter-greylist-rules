@@ -1,0 +1,31 @@
+### Domains generally distrusted by this relay, such as foreign countries,
+### get enforced greylisting delays.
+### NOTE: Revise for the particular organization before uncommenting!!!
+
+### Config shared by different relays in the set:
+### $Id: milter-greylist.conf-12-greylist-senders,v 1.2 2014/12/23 21:10:38 jim Exp $
+
+#list "grey-FROM" from {			\
+#	noreply@onlineserver.cc		\
+#	/.*@orange\.fr$/		\
+#	/.*@.*\.(de|bg|pl|fr|vn|in|jp|bt|cn|br|ng|sh|local[^\.]*)$/	\
+#}
+
+#list "grey-DOMAIN" domain {		\
+#	orange.fr			\
+#	/.*secureserver\.net$/		\
+#	/\.(de|bg|pl|fr|vn|in|jp|bt|cn|br|ng|sh|local[^\.]*)$/		\
+#}
+
+#racl greylist list "grey-FROM" \
+#	log "MGL-TEMPFAIL-DNS-480: %P{conninfo}: Frequent spam source, max delay 480min" \
+#	addheader "X-Greylist-Verdict: SPAM-Likely" \
+#	msg "MGL-TEMPFAIL-DNS-480: Frequent spam source. Contact %P{contact} if you have valid mail." \
+#	delay 480m
+
+#racl greylist list "grey-DOMAIN" \
+#	log "MGL-TEMPFAIL-DNS-480: %P{conninfo}: Frequent spam source, max delay 480min" \
+#	addheader "X-Greylist-Verdict: SPAM-Likely" \
+#	msg "MGL-TEMPFAIL-DNS-480: Frequent spam source. Contact %P{contact} if you have valid mail." \
+#	delay 480m
+

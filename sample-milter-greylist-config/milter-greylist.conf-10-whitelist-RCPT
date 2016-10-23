@@ -1,0 +1,20 @@
+### These rules allow to set a whitelist of recipients (mails to them
+### should always pass quickly).
+
+### Config shared by different relays in the set:
+### $Id: milter-greylist.conf-10-whitelist-RCPT,v 1.5 2014/12/23 19:15:08 jim Exp $
+
+##### Full-server mode syntax:
+### acl whitelist rcpt <username>
+### acl greylist default
+#####
+
+##### Current rules:
+list "whitelist-RCPT" rcpt {	\
+	abuse@myorg.domain  		\ # "Technical" addresses
+	support@myorg.domain		\
+}
+
+racl whitelist list "whitelist-RCPT" \
+	log "MGL-WHITELIST-RCPT: %P{conninfo}: static-whitelisted by rule %a, delay %R" \
+	addheader "X-Greylist-Skipped: recipient %r is static-whitelisted"

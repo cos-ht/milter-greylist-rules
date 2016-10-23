@@ -1,0 +1,81 @@
+### The blocks below define some rules based on SPF (via DNS) and assign
+### positive or negative spam-source scores to sources which match a rule.
+### $Id: milter-greylist.conf-70-SPF,v 1.9 2014/08/09 14:54:10 jim Exp $
+### See	http://www.openspf.org/SPF_Record_Syntax		for values
+###	http://www.openspf.org/SPF_Received_Header		for std headers
+### and	http://vamsoft.com/support/tools/spf-policy-tester	to test DNS
+
+######## Interpretations:
+### PASS  	The SPF record designates the host to be allowed to send
+### SOFTFAIL	The SPF record has designated the host as NOT being allowed
+###		to send, but is "in transition" (accept and mark)
+### FAIL	The SPF record has designated the host as NOT being allowed
+###		to send (reject)
+### NONE  	The domain does not have an SPF record or
+###		the SPF record does not evaluate to a result	
+### NEUTRAL	The SPF record specifies explicitly that nothing can be said
+###		about validity (process as if no SPF record was published)
+### ERROR	A transient error has occured (like DNS timeout)
+### UNKNOWN	A permanent error has occured (eg. badly formatted SPF record)	
+
+### Possible values are pass, softfail, fail, unknown, error, none, and self.
+### The first six values are plain SPF validation status. The self value is
+### a special test that checks the server's local IP address against the
+### sender's SPF record. If that test validates, odds are good that the
+### sender SPF record is wide open, and this is hint that SPF should not
+### be trusted.
+
+racl continue not spf self spf pass \
+    set $msgSPF="SPF pass" \
+    log "(%i SP:0) SPF verification PASS" \
+    addheader "Received-SPF: pass (domain of %f designates %i as permitted sender AND its rules are not overly permissive) envelope-from=<%f>; client-ip=%i; helo=%h; client-name=%d"
+#    set $dnsscore-=5 \
+#    log "(%i SP:-5) SPF verification PASS" \
+
+racl continue spf fail \
+    set $msgSPF="SPF failure: sender host '%d'[%i] not among allowed origins for domain '%sf', and it forbids misses" \
+    set $dnsscore+=50 \
+    log "(%i SP:+50) SPF verification FAIL"
+
+racl continue spf softfail \
+    set $msgSPF="SPF softfail: sender host '%d'[%i] not among allowed origins for domain '%sf', but it permits misses" \
+    set $dnsscore+=5 \
+    log "(%i SP:+5) SPF verification soft failure: sender host '%d'[%i] not among explicitly allowed origin hosts for domain '%sf', but misses are permitted" \
+    addheader "Received-SPF: softfail (sender not among explicitly allowed origin hosts for domain '%sf', but misses are permitted by its SPF) envelope-from=<%f>; client-ip=%i; helo=%h; client-name=%d"
+
+racl continue spf self \
+    set $msgSPF="SPF softfail: sender domain '%sf' SPF is so permissive that we can impersonate it" \
+    set $dnsscore+=15 \
+    log "(%i SP:+15) SPF verification soft failure: sender domain '%sf' SPF is so permissive that our relay can impersonate it" \
+    addheader "Received-SPF: softfail (sender domain '%sf' SPF is so permissive that our relay can impersonate it) envelope-from=<%f>; client-ip=%i; helo=%h; client-name=%d"
+
+racl continue spf none \
+    set $msgSPF="SPF none: sender domain '%sf' does not declare SPF permitted relays, any relay is valid" \
+    set $dnsscore+=3 \
+    log "(%i SP:+3) SPF none: sender domain '%sf' does not declare SPF permitted relays, any relay is valid" \
+    addheader "Received-SPF: none (sender domain '%sf' does not declare SPF permitted relays, any relay is valid)"
+
+racl continue spf neutral \
+    set $msgSPF="SPF neutral: sender domain '%sf' declares via SPF that any relay is valid" \
+    set $dnsscore+=3 \
+    log "(%i SP:+3) SPF neutral: sender domain '%sf' declares via SPF that any relay is valid" \
+    addheader "Received-SPF: neutral (sender domain '%sf' declares via SPF that any relay is valid)"
+
+racl continue spf error \
+    set $msgSPF="SPF error: an error occured while evaluating SPF for sender domain '%sf', accept any relay" \
+    set $dnsscore+=3 \
+    log "(%i SP:+3) SPF error: an error occured while evaluating SPF for sender domain '%sf', accept any relay" \
+    addheader "Received-SPF: error (an error occured while evaluating SPF for sender domain '%sf', accept any relay)"
+
+racl continue spf unknown \
+    set $msgSPF="SPF unknown: undefined result received while evaluating SPF for sender domain '%sf', accept any relay" \
+    log "(%i SP:+0) SPF unknown: undefined result received while evaluating SPF for sender domain '%sf', accept any relay"
+
+### To debug
+#racl greylist spf none delay 2m msg "SPF: none"
+#racl greylist spf error delay 2m msg "SPF: error"
+#racl greylist spf unknown delay 2m msg "SPF: unknown"
+#racl greylist spf neutral delay 2m msg "SPF: neutral"
+
+### Unknown/Neutral, Error and None fall through to other greylist rules
+

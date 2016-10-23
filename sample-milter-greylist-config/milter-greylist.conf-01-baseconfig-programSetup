@@ -1,0 +1,157 @@
+###
+### This part of the split-config declares the multi-relay common basic config.
+### It is unlikely to change from packaged version; however, if change does
+### come - it should be simultaneous on all hosts.
+###
+### Config shared by different relays in the set:
+### $Id: milter-greylist.conf-01-baseconfig-programSetup,v 1.5 2014/02/27 16:20:10 jim Exp $
+###
+
+# Uncomment this to enable debug output.
+# Note that options appearing before the "verbose" option in this
+# file will not be treated verbosely.
+# May be overridden by the "-v" command line argument.
+#verbose
+
+# Greylisting your own MTA is a very bad idea: never
+# comment this line, except for testing purposes.
+racl whitelist addr 127.0.0.0/8
+
+# If you use IPv6, uncomment this.
+#racl whitelist addr ::1/128
+
+################# EXAMPLES, actual rules set in other split config files #####
+# You will want to avoid greylisting your own clients
+# as well, by filtering out your IP address blocks.
+# Here is an example if you use 192.0.2.0/16.
+#racl whitelist addr 192.0.2.0/16
+
+# It is also possible to whitelist sender
+# machines using their DNS names.
+#racl whitelist domain example.net
+
+# You can avoid greylisting by filtering on the sender
+# envelope address, but this is not a good idea: it
+# can be trivially forged.
+#racl whitelist from friendly@example.com
+
+# Some of your users do not get any spam because
+# their addresses have never been collected by
+# spammers. They will want to avoid the extra delivery
+# delay caused by grey listing. You can filter on the
+# recipient envelope address to achieve that.
+#racl whitelist rcpt John.Doe@example.net
+
+# It is possible to use regular expressions in domain, from
+# and rcpt lines. The expression must be enclosed by
+# slashes (/). Note that no escaping is available to
+# provide slashes inside the regular expression.
+#racl whitelist rcpt /@example\.net$/
+########################## END OF RULE EXAMPLE SYNTAX #############
+
+# This option tells milter-greylist when it should
+# add an X-Greylist header. Default is all, which
+# causes a header to always be added. Other possible
+# values are none, delays and nodelays
+report all
+
+# This option attempts to make milter-greylist more
+# friendly with sender callback systems. When the
+# message is from <>, it will be temporarily
+# rejected at the DATA stage instead of the RCPT
+# stage of the SMTP transaction. In the case of a
+# multi recipient DSN, whitelisted recipient will
+# not be honoured.
+#delayedreject
+
+# Uncomment if you want auto-whitelist to work for
+# the IP rather than for the (IP, sender, receiver)
+# tuple.
+lazyaw
+
+# match on subdomain boundaries instead of the default suffix
+# matching. E.g. if domainexact is not enabled (the default)
+# then gle.com will match google.com in addtion to gle.com.
+# If domainexact is enabled then, domain names will match on
+# subdomain boundaries (e.g. gle.com will match mail.gle.com
+# and gle.com but not google.com)
+domainexact
+
+# How long will the greylist database retain tuples.
+#timeout 5d
+timeout 5d
+
+# Do not use ${greylist} macros from sendmail's access DB.
+#noaccessdb
+
+# Use extended regular expressions instead of basic
+# regular expressions.
+extendedregex
+
+#
+# All of the following options have command-line equivalents.
+# See greylist.conf(5) for the exact equivalences.
+#
+
+# How long a client has to wait before we accept
+# the messages it retries to send. Here, 1 hour.
+# May be overridden by the "-w greylist_delay" command line argument.
+### In COS&HT setups, the default delay is minimal for little disruption to
+### end-users. Instead, sources that score a higher spam-source probability
+### are delayed much more (2-8 hours).
+#greylist 1h
+#greylist 25m
+greylist 2m
+
+# How long does auto-whitelisting last (set it to 0
+# to disable auto-whitelisting). Here, 3 days.
+# May be overridden by the "-a autowhite_delay" command line argument.
+#autowhite 3d
+autowhite 3d
+
+# Specify the netmask to be used when checking IPv4 addresses
+# in the greylist.
+# May be overridden by the "-L cidrmask" command line argument.
+#subnetmatch /24
+
+# Specify the netmask to be used when checking IPv6 addresses
+# in the greylist.
+# May be overridden by the "-M prefixlen" command line argument.
+#subnetmatch6 /64
+
+# Normally, clients that succeed SMTP AUTH are not
+# greylisted. Uncomment this if you want to
+# greylist them regardless of SMTP AUTH.
+# May be overridden by the "-A" command line argument.
+### In COS&HT setups, AUTH'd relays are separate from common ones
+### There are spammers who use "AUTH=<>" to bypass milter-greylist
+noauth
+
+# If milter-greylist was built with SPF support, then
+# SPF-compliant senders are not greylisted. Uncomment
+# this to greylist them regardless of SPF compliance.
+# May be overridden by the "-S" command line argument.
+### In COS&HT setups, SPF processing is one of many factors in greylisting,
+### rules are detailed below in the modular configuration
+#nospf
+
+# Uncomment this to disable DRAC
+#nodrac
+
+# Uncomment this if you do not want milter-greylist
+# to tell its clients how long they are greylisted.
+# May be overridden by the "-q" command line argument.
+#quiet
+
+# Here is an example of user preference pulled from a LDAP directory
+# (requires building --with-libcurl). If the milterGreylistStatus 
+# attribute is set to TRUE, then $usrRBL will be usable later in the
+# ACL and will carry the values of the usrRBL attribute.
+# urlcheck "userpref" \
+# "ldap://localhost/dc=example,dc=net?milterGreylistStatus,usrRBL?one?mail=%r" \
+# 30 getprop clear fork
+
+# If the p0f socket is defined, fingerprinting (and possible related delays)
+# take place before any ACL processing. The 'acl p0f' rules only process the
+# cached results of the query to the p0f daemon, if any are available.
+#p0fsock "/var/milter-greylist/p0f.sock"

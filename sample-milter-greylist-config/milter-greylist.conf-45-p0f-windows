@@ -1,0 +1,36 @@
+### This is a set of rules to greylist mails based on fingerprinting the
+### source host - if it seems like a workstation from an untrusted net,
+### it may well be a spam-bot. Note: this may require running p0f service
+### in the global zone or in an exclusive-IP zone, and likely that should
+### be the mail-server's operating environment.
+
+### Config shared by different relays in the set:
+### $Id: milter-greylist.conf-45-p0f-windows,v 1.3 2014/02/27 16:20:10 jim Exp $
+
+### Based on http://milter-greylist.wikidot.com/using-p0f
+### The addheader portion allows this to be picked up by SpamAssassin with
+### this rule in local.cf:
+###
+### header   KHOP_WIN_GREYED X-Greylist-OS =~ /Windows (?:XP|2000(?! SP4)|Vista)/
+### describe KHOP_WIN_GREYED Sending server runs a Windows desktop OS
+### score    KHOP_WIN_GREYED 0.2 0.2 0.5 0.5
+
+### Redefine logging if desired - then you can have statistics:
+### cat greylist.log | sed -r '/[^\(]*\((.*->).*$/!d; s//\1/; s/\)[^\)]*$//; s/^\s*$/unknown/' |sort |uniq -c |sort -n
+### Log milter-greylist activity to a file, including OS
+#stat ">>/var/log/greylist.log" \
+#      "%T{%Y/%m/%d %T} %d [%i] (%Fx) %r -> %f %S (ACL %A) %Xc %Xe %Xm %Xh\n"
+
+#racl continue p0f /.+/ \
+#        set $p0fscore=0 \
+#        log "Detected remote OS: %d[%i] %f: '%Fx'" \
+#        addheader "X-Greylist-OS: %Fx"
+
+#racl continue p0f /Windows (2003|2008|2012|2000 SP4)/ \
+#        set $p0fscore-=10 \
+#        log "(SP: -10) %d[%i] %f: Windows Server (%Fx)"
+
+#racl continue p0f "Windows" \
+#        set $p0fscore+=5 \
+#        log "(SP: +5) %d[%i] %f: Windows OS"
+

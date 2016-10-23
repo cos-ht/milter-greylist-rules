@@ -1,0 +1,13 @@
+### This part sets the antispam admin contact for valid people to be whitelisted
+### $Id: milter-greylist.conf-06-contact_email,v 1.8 2014/02/27 16:20:10 jim Exp $
+
+racl continue \
+    set $contact="bypass-antispam@myorg.domain" \
+    set $repost="repost from registered SMTP server, or contact %P{contact}"
+
+racl whitelist rcpt bypass-antispam@myorg.domain log "MGL-WHITELIST-RCPT: %P{conninfo}: static-whitelisted by rule %a, delay %R"
+
+### Alas, this syntax is not yet supported (4.5.7):
+#racl whitelist rcpt "%P{contact}" log "MGL-WHITELIST-RCPT: %P{conninfo}: static-whitelisted by rule %a, delay %R"
+#racl whitelist rcpt %P{contact} log "MGL-WHITELIST-RCPT: %P{conninfo}: static-whitelisted by rule %a, delay %R"
+

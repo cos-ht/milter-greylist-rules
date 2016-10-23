@@ -1,0 +1,47 @@
+### Networks "owned" by this relay's owner and trusted to submit SMTP without
+### any greylisting delays. Also administrative users from external nets to
+### be before the blacklist...
+
+### Config shared by different relays in the set:
+### $Id: milter-greylist.conf-05-ownedNetworks,v 1.3 2014/02/27 16:02:43 jim Exp $
+
+list "standardprivatenets" addr {	\
+	192.168.0.0/16		\ # Private range
+	172.16.0.0/12 		\ # Private range
+	10.0.0.0/8    		\ # Private range
+}
+list "ownednets-ipaddr" addr {	\
+	192.168.127.0/24	\ # Inter-local-zone comms etherstub on the box
+	192.168.0.0/24		\ # Test net
+	192.168.3.0/24		\ # Test net
+	192.168.190.0/24	\ # Private segment for servers
+}
+
+list "ownednets-domain" domain { \
+	myorg.domain			\
+	/.*\.myorg\.domain/		\
+}
+
+#racl whitelist list "ownednets-ipaddr" log "MGL-WHITELIST-SRC-OWNED: %P{conninfo}: static-whitelisted by rule %a"
+#racl whitelist list "ownednets-domain" log "MGL-WHITELIST-SRC-OWNED: %P{conninfo}: static-whitelisted by rule %a"
+racl whitelist list "standardprivatenets" log "MGL-WHITELIST-SRC-PRIVATE: %P{conninfo}: static-whitelisted by rule %a"
+
+### Description: Employees from homes with static IP addresses
+list "trustednet-ipaddr-Admins" addr { \
+	10.55.40.45 \	# user1
+	10.55.26.15 \	# boss2
+}
+list "trustednet-domain-Admins" domain { \
+	gooduserhome.myorg.domain \
+}
+#racl whitelist list "trustednet-ipaddr-Admins" log "MGL-WHITELIST-SRC-ADMIN: %P{conninfo}: static-whitelisted by rule %a"
+#racl whitelist list "trustednet-domain-Admins" log "MGL-WHITELIST-SRC-ADMIN: %P{conninfo}: static-whitelisted by rule %a"
+
+### For Sun/Oracle CommSuite integration: reprocessing channels might submit
+### messages to milter-greylist again. They are not networked and should be
+### ignored.
+#list "commsuite-channels" domain { \
+#       process-daemon.imap.myorg.domain        \
+#       tcp-daemon.imap.myorg.domain            \
+#}
+#racl whitelist list "commsuite-channels" log "MGL-WHITELIST-SRC-COMMSUITE: static-whitelisted by rule %a"

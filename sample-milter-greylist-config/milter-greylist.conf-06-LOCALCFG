@@ -1,0 +1,13 @@
+### Some config items relevant to a particular host (not replicated to
+### others in case of a multi-relay setup).
+### $Id: milter-greylist.conf-06-LOCALCFG,v 1.2 2013/09/27 11:13:19 jim Exp $
+
+### A few options for CommSuite miltering which shouldn't hurt on Sendmail
+
+# Enforce attempts to resolve the remote relay's domain name if it was passed
+# as a numeric IP address, maybe bracketed, from the MTA (milter client)
+unbracket
+
+# If {if_addr} macro is unavailable, some routines (spf self, p0f, format
+# string of own address) can fall back onto a statically configured address
+#localaddr 10.1.2.3
