@@ -1,0 +1,89 @@
+#!/bin/bash
+
+### Combine milter-greylist configuration file snippets into a common file
+### named /etc/mail/greylist.conf (completely replaced in the process).
+### NOTE: This script tries to validate the temporary config file and then
+### compares it to the existing config. If the newly built one is valid and
+### identical to old, no changes are done and an exit code of 126 is returned.
+### NOTE: There is a fair bit of hard-coding (paths etc.) as was applicable
+### for our internally produced packages.
+### (C) 2002-2014 by Jim Klimov, COS&HT, for COSmailgrl package
+
+cd /etc/mail || exit 1
+
+echo "# milter-greylist config
+# This part was auto-generated: `date`" > greylist.conf.test
+[ $? != 0 ] && echo "An error occurred creating greylist.conf.test..." && exit 1
+
+clonedcode_validate() {
+    ### This is a toned-down copy of the validation routine from our initscript
+    ### which is distributed with packaged binaries to match them intimately.
+    conffile="/etc/mail/greylist.conf"
+    [ x"$1" != x ] && conffile="$1"
+    [ x"$conffile" = x -o ! -s "$conffile" -o ! -r "$conffile" ] && \
+        echo "ERROR: can not find a non-empty config file '$conffile'" >&2 \
+        && return 1
+    echo "INFO: Starting milter-greylist program to validate config file $conffile:"
+    milter-greylist -c -f "$conffile" 2>&1
+    RES=$?
+    echo "INFO: Validation completed with status $RES\t\c"
+    if [ "$RES" != 0 ]; then
+        echo "[=FAIL=]"
+        echo "ERROR: Validation of config file '$conffile' has failed ($RES)" >&2
+    else
+        echo "[==OK==]"
+    fi
+    return $RES
+}
+
+### TODO: generate greylist.conf-wl-relay-addr and
+### greylist.conf-wl-relay-domain from sendmail's config files
+
+RES1=-1
+RES2=0
+OUT="`ls -1 greylist.conf-* 2>/dev/null`"; RES=$?
+if [ x"$OUT" != x ]; then
+    echo "WARNING: Old format configs found (relevant to older package)" >&2
+    cat greylist.conf-* >> greylist.conf.test
+    RES1=$?
+fi
+cat milter-greylist.conf-* >> greylist.conf.test
+RES2=$?
+
+[ $RES1 != 0 -a $RES2 != 0 ] && echo "
+An error occurred... You are not root? Wait till */4 hours for auto update..."
+
+ls -al /etc/mail/greylist.conf.test
+
+[ $RES1 -gt 0 ] && exit $RES1
+[ $RES2 -gt 0 ] && exit $RES2
+
+RES3=0
+echo "Validating config file... \c"
+if [ -x /etc/init.d/sendmail-milter-greylist.init ]; then
+    OUT="`/etc/init.d/sendmail-milter-greylist.init validate greylist.conf.test`"
+    RES3=$?
+else
+    OUT="`clonedcode_validate greylist.conf.test`"
+    RES3=$?
+fi
+echo " ($RES3)"
+[ $RES3 != 0 ] && echo "$OUT"
+
+if [ $RES3 = 0 ]; then
+    diff greylist.conf greylist.conf.test | egrep '^[\<\>]' | \
+    grep -v 'This part was auto-generated' >/dev/null || \
+        { echo "New config is identical to old, and is valid - not replacing" && \
+          exit 126; }
+    echo "Tests passed, copying into final config file"
+    cat greylist.conf.test > greylist.conf
+    RES3=$?
+    ls -al /etc/mail/greylist.conf
+fi
+if [ $RES3 != 0 ]; then
+    echo "
+An error occurred... You are not root? Config file is invalid?"
+    exit $RES3
+fi
+
+exit 0
