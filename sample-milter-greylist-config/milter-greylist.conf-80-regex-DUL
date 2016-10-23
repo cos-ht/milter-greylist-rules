@@ -1,0 +1,98 @@
+### This blocks dial-up and other consumer addresses based on remote host's
+### domain name which "seems like" a typical dial-up address. Patterns below:
+### $Id: milter-greylist.conf-80-regex-DUL,v 1.9 2014/12/23 18:21:06 jim Exp $
+
+### Use extended regular expressions instead of basic regular expressions.
+extendedregex
+
+### Reject (delay) unresolvable mailservers (hostname is IP in brackets)
+racl continue \
+    domain /^\[[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\]$/ \
+    set $dnsscore+=10 set $dnsbracketed=1 \
+    log "(%i SP:+10) %P{conninfo}: DNS PTR could not be resolved" \
+    set $msgDNSbracket="Can't resolve DNS PTR: try later, post via SMTP server properly registered in DNS, or contact %P{contact}."
+
+### Some milter macros for debugging
+#    msg "(DEBUG) j=%Mj _=%M{_} if_addr=%M{if_addr} client_name=%M{client_name} client_addr=%M{client_addr} client_ptr=%M{client_ptr} helo=%h domain=%d Your DNS name could not be resolved at this moment, all we got is '%d'. Please try again later (this may be our TEMPFAIL), or re-send through your ISP's registered SMTP server which has a matching PTR entry in its DNS."
+
+### Reject (delay) relays with malformed HELO or DNS PTR names (not FQDN)
+racl continue \
+    helo /^[^\.]*$/ \
+    set $dnsscore+=10 \
+    log "(%i SP:+10) %P{conninfo}: Malformed HELO (not FQDN: no dot)" \
+    set $msgDNS="Malformed HELO ('%h' not FQDN: no dot)"
+
+racl continue \
+    domain /^[^\.]*$/ \
+    set $dnsscore+=10 \
+    log "(%i SP:+10) %P{conninfo}: Malformed DNS PTR (not FQDN: no dot)" \
+    set $msgDNS="Malformed DNS PTR ('%d' not FQDN: no dot)"
+
+racl continue \
+    helo /^\[?[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\]?$/ \
+    set $dnsscore+=15 \
+    log "(%i SP:+15) %P{conninfo}: Malformed HELO (not FQDN: IP address only)" \
+    set $msgDNS="Malformed HELO ('%h' not FQDN: IP address only)"
+
+racl continue \
+    helo /^localhost(\.*|\.local.*)$/ \
+    set $dnsscore+=30 \
+    log "(%i SP:+30) %P{conninfo}: Malformed HELO (localhost)" \
+    set $msgDNS="Malformed HELO ('%h' is localhost)"
+
+racl continue \
+    domain /^localhost(\.*|\.local.*)$/ \
+    set $dnsscore+=30 \
+    log "(%i SP:+30) %P{conninfo}: Malformed DNS PTR (localhost)" \
+    set $msgDNS="Malformed DNS PTR ('%d' is localhost)"
+
+racl continue \
+    not helo "%d" \
+    set $dnsscore+=10 \
+    log "(%i SP:+10) %P{conninfo}: Malformed HELO (HELO '%h' does not match reverse DNS '%d')" \
+    set $msgDNS="Malformed HELO (HELO '%h' does not match reverse DNS '%d')"
+
+### reject things that look like they might come from a dynamic address
+### So, we reject anything that has three digit sets deperated by a dash,
+### (ie adsl-134-11-333-11.someisp.net). We reject anything that has
+### 3 or more numeric subdomains, (ie dialup.123.45.67.8.someisp.net).
+### And finally reject any address that has a group of 12 digits,
+### (ie pool123045067003.someisp.net). 
+
+racl continue \
+    helo /^.*((ppp|pool|dsl|dial|dial-?up|dynamic|static|cable|broadband|client|dhcp|cdma)[0-9\.\-]|[0-9]{12}|[0-9][0-9]*\-[0-9][0-9]*\-[0-9][0-9]*|host[\.\-]?[0-9]).*$/ \
+    set $dnsscore+=10 \
+    log "(%i SP:+10) %P{conninfo}: HELO looks like a dynamic/consumer address" \
+    set $msgDNS="Your HELO looks like a dynamic/consumer address"
+
+list "dynamicDomainNames" domain { \
+    /^.*[0-9][0-9]*\-[0-9][0-9]*\-[0-9][0-9]*.*$/			\
+    /^[^\[].*[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*.*[^\]]$/		\
+    /^.*[0-9]{12}.*$/e			\
+    /^.*ppp[0-9\.\-].*$/i		\
+    /^.*pool[0-9\.\-].*$/i		\
+    /^.*dsl[0-9\.\-].*$/i		\
+    /^.*dial[0-9\.\-].*$/i		\
+    /^.*dial-?up[0-9\.\-].*$/i		\
+    /^.*dynamic[0-9\.\-].*$/i		\
+    /^.*cable[0-9\.\-].*$/i		\
+    /^.*client[0-9\.\-].*$/i		\
+    /^.*host[\.\-]?[0-9].*$/i		\
+    /^.*dhcp[0-9\.\-].*$/i		\
+    /^.*cdma[0-9\.\-].*$/i		\
+    /broadband/i			\
+    /static/i				\
+    /^.*in-addr\.arpa.*$/i		\
+    /^.*dip0\.t-ipconnect\.de$/i	\
+    /^.*virtua\.com\.br$/i		\
+    /speedy.com.ar$/i			\
+}
+racl continue \
+    list "dynamicDomainNames" \
+    set $dnsscore+=10 \
+    log "(%i SP:+10) %P{conninfo}: hostname DNS PTR entry looks like a dynamic/consumer address" \
+    set $msgDNS="Your DNS PTR entry looks like a dynamic/consumer address"
+
+### Above we rejected (delayed long enough to get hit by DNS RBL) potential
+### spammers by IP-looking names and by dynamic-looking names...
+

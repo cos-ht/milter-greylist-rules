@@ -1,0 +1,7 @@
+### Example of content filtering for fighting image SPAM
+
+### Config shared by different relays in the set:
+### $Id: milter-greylist.conf-85-rules-content-spamImage,v 1.1 2014/12/23 18:21:07 jim Exp $
+
+#dacl blacklist body /src[:blank:]*=(3D)?[:blank:]*["']?[:blank:]*cid:/ \
+#     msg "MGL-REJECT-CONTENT: %P{conninfo}: Sorry, We do not accept images embedded in HTML"

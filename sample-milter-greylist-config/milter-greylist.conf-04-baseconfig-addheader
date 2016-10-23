@@ -1,0 +1,19 @@
+### Just add myself to the message header trace (along with later more details
+### about actual rule hits from 'report all' config option)
+### $Id: milter-greylist.conf-04-baseconfig-addheader,v 1.5 2014/12/23 19:15:08 jim Exp $
+
+racl continue rcpt /.*/ \
+    set $conninfo="IP:'%i' DOMAIN:'%d' HELO:'%h' FROM:'%f' RCPT:'%r'" \
+    set $dnsscore=0 \
+    set $dnswl=0 set $dnsbl=0 \
+    log "MGL_CONNECTION: inspected by %V for %P{conninfo}"
+### The underscore in MGL_ above allows to differentiate initial connections
+### from final results in log parsing for verdicts with dash "MGL-.*"
+
+dacl continue rcpt /.*/ addheader \
+    "X-Greylist-Inspected: inspected by %V for IP:'%i' DOMAIN:'%d' HELO:'%h' FROM:'%f'"
+
+#racl continue rcpt /.*/ log \
+#  "LOG-Greylist-Inspected: inspected by %V for IP:'%i' DOMAIN:'%d' HELO:'%h' FROM:'%f' RCPT:'%r'" addheader \
+#  "X-Greylist-Inspected: inspected by %V for IP:'%i' DOMAIN:'%d' HELO:'%h' FROM:'%f' RCPT:'%r'"
+

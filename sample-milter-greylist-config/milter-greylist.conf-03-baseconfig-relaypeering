@@ -1,0 +1,25 @@
+### This is by default local configuration for the current host.
+### $Id: milter-greylist.conf-03-baseconfig-relaypeering,v 1.1 2013/07/20 18:01:37 jim Exp $
+### If you work with multiple MX, list them with peer entries to enable
+### the greylist contents sync among the MX.
+### For older milter-greylist, the peer list should except THIS CURRENT server.
+### Newer milter-greylist auto-excludes itself if it can, so the list may be
+### shared among all MXes. However, for multihomed hosts individual configs
+### may be preferred.
+
+#peer 192.168.127.81
+
+syncaddr * port 5252
+#syncaddr 192.168.127.93 port 5252
+
+# You may wish to use a specific local address or port for 
+# syncing between MXes. Of course one of your interfaces 
+# must have the address assigned. An '*' for the address 
+# means any address. Default port 5252/tcp.
+#syncaddr *
+#syncaddr * port 7689
+#syncaddr 192.0.2.2
+#syncaddr 192.0.2.2 port 9785
+#syncaddr 2001:db8::1:c3b5:123
+#syncaddr 2001:db8::1:c3b5:123 port 1234
+

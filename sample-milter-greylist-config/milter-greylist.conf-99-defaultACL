@@ -1,0 +1,70 @@
+### This block summarizes the assigned scores to not-yet-whitelisted (nor
+### blacklisted) sources and logs the final results. If the sources are
+### deemed to be probable spammers, they are delayed for a long while.
+### Otherwise the default greylist delay should be short (2-25 minutes).
+### $Id: milter-greylist.conf-99-defaultACL,v 1.12 2016/04/18 20:01:21 mailcvs Exp $
+
+racl continue set $score="%P{dnsscore}" \
+    set $Rt="%Rt" set $Et="%Et" set $R="%R" set $E="%E" set $S="%S"
+racl continue set $score+="%P{p0fscore}" \
+    addheader "X-Greylist-SPAMScore: DNS:%P{dnsscore} P0F:%P{p0fscore} P0F-OS:'%Fx' SPF-VERDICT:'%P{msgSPF}'"
+
+racl whitelist $score<0 \
+    log "MGL-WHITELIST-DNS-GOOD: %P{conninfo}: Source looks like not a spam-source (scored %P{dnsscore} in DNS, %P{p0fscore} in P0F); previous delay: %E" \
+    delay 0m \
+    msg "MGL-WHITELIST-DNS-GOOD: %P{conninfo}: Source looks like not a spam-source in DNS, remaining delay: %R"
+
+racl whitelist $dnswl>0 not spf self spf pass \
+    log "MGL-WHITELIST-DNSWL-SPF-GOOD: %P{conninfo}: Source is in DNSWL and has good SPF (scored %P{dnsscore} in DNS, %P{p0fscore} in P0F); previous delay: %E" \
+    delay 0m \
+    msg "MGL-WHITELIST-DNSWL-SPF-GOOD: %P{conninfo}: Source is in DNSWL and has good SPF, remaining delay: %R"
+
+racl blacklist $score>=50 \
+    log "MGL-REJECT-DNS: %P{conninfo}: Source looks like a certain spam-source (scored %P{dnsscore} in DNS, %P{p0fscore} in P0F), previous delay: %E" \
+    msg "MGL-REJECT-DNS: DNScheck: certain spam-source; %P{repost}. %P{msgDNS} %P{msgSPF}"
+
+racl greylist $score>=20 \
+    log "MGL-TEMPFAIL-DNS-480: %P{conninfo}: Source looks like a probable spam-source (scored %P{dnsscore} in DNS, %P{p0fscore} in P0F) (max delay 480m)" \
+    delay 480m \
+    msg "MGL-TEMPFAIL-DNS-480: DNScheck: probable spam-source; %P{repost}. %P{msgDNS} %P{msgSPF}"
+
+racl greylist $dnsbracketed==1 \
+    log "MGL-TEMPFAIL-DNS-001: %P{conninfo}: unresolved PTR (scored %P{dnsscore}): %P{msgDNSbracket}" \
+    delay 1m flushaddr \
+    msg "MGL-TEMPFAIL-DNS-001: %P{msgDNSbracket}"
+
+racl greylist $score>=10 \
+    log "MGL-TEMPFAIL-DNS-120: %P{conninfo}: Source looks like spam-source (scored %P{dnsscore} in DNS, %P{p0fscore} in P0F) (max delay 120m)" \
+    delay 120m \
+    msg "MGL-TEMPFAIL-DNS-120: DNScheck: likely spam-source; %P{repost}. %P{msgDNS} %P{msgSPF}"
+
+racl greylist $score>=5 \
+    log "MGL-TEMPFAIL-DNS-025: %P{conninfo}: Source looks like a potential spam-source (scored %P{dnsscore} in DNS, %P{p0fscore} in P0F) (max delay 25m)" \
+    delay 25m \
+    msg "MGL-TEMPFAIL-DNS-025: DNScheck: potential spam-source; %P{repost}. %P{msgDNS} %P{msgSPF}"
+
+racl greylist $Rt>0 \
+    log "MGL-TEMPFAIL-DFL-002: %P{conninfo}: default greylisting action (%S), %E elapsed, %R remains" \
+    msg "MGL-TEMPFAIL-DFL-002: default greylisting action for %P{conninfo}: %S"
+
+racl greylist $Et>0 \
+    log "MGL-ACCEPT-DFL: %P{conninfo}: completed default greylisting action (%S); pass after %E delay" \
+    msg "MGL-ACCEPT-DFL: completed default greylisting action for %P{conninfo}: %S"
+
+racl greylist $Rt<=0 \
+    log "MGL-ACCEPT-DFL: %P{conninfo}: completed default greylisting action (%S); auto-whitelisted" \
+    msg "MGL-ACCEPT-DFL: completed default greylisting action for %P{conninfo}: %S"
+
+racl greylist $score>=0 \
+    log "MGL-TEMPFAIL-DFL-002: %P{conninfo}: default greylisting action (%S, pass or greylist)" \
+    msg "MGL-TEMPFAIL-DFL-002: default greylisting action for %P{conninfo}: %S"
+
+### Should not get here... but grep for "created: " lines like this:
+###   Feb 28 04:11:10 relay-mta milter-greylist: [ID 556459 mail.debug]
+###     created:  81.177.41.230 from <stas@poster.trade.su> to
+###     <ouruser@myorg.domain> delayed for 00:02:00
+acl greylist default
+
+#############################################
+### END OF MODULAR MILTER-GREYLIST CONFIG ###
+#############################################

@@ -1,0 +1,61 @@
+### This is local configuration for the current host depending on its
+### capabilities and local config - runtime user, paths, logging, etc.
+### $Id: milter-greylist.conf-02-baseconfig-relayhost,v 1.1 2013/07/20 18:01:36 jim Exp $
+
+# Log milter-greylist activity to a file
+#stat ">>/var/milter-greylist/greylist.log" \
+#      "%T{%Y/%m/%d %T} %d [%i] %r -> %f %S (ACL %A) %Xc %Xe %Xm %Xh\n"
+# Same, sent to syslog - for some reason, hangs on Solaris though seems valid
+#stat "|logger -p local7.info" \
+#      "%T{%Y/%m/%d %T} %d [%i] %r -> %f %S (ACL %A) %Xc %Xe %Xm %Xh"
+#stat "|/bin/logger -p mail.info" \
+#      "%T{%Y/%m/%d %T} %d [%i] %r -> %f %S (ACL %A) %Xc %Xe %Xm %Xh"
+
+# The dumpfile location.
+# May be overridden by the "-d dumpfile" command line argument.
+#dumpfile "/var/milter-greylist/greylist.db"
+dumpfile "/var/milter-greylist/greylist.db"
+
+# How often should we dump to the dumpfile (0: on each change, -1: never).
+#dumpfreq 10m
+#dumpfreq 1m
+dumpfreq 30m
+
+# This option disables the conversion of the time specified in the
+# integer format to humanly readable format in the comment of each
+# line in the dumpfile.
+# Time needed in order to dump large dumpfiles (several million 
+# entries/few 100's of MB) can be significantly improved.
+#dump_no_time_translation
+
+# This option causes greylist entries that expire to be logged via
+# syslog.  This allows you to collect the IP addresses and sender
+# names and use them for blacklisting, SPAM scoring, etc.
+#logexpired
+
+# You can specify a file where milter-greylist will
+# store its PID.
+# May be overridden by the "-P pidfile" command line argument.
+#pidfile "/var/run/milter-greylist.pid"
+pidfile "/var/milter-greylist/milter-greylist.pid"
+
+# You can specify the socket file used to communicate
+# with sendmail.
+# May be overridden by the "-p socket" command line argument.
+#socket "/var/milter-greylist/milter-greylist.sock"
+#socket "inet:3311@localhost"
+socket "/var/milter-greylist/milter-greylist.sock"
+
+# If milter-greylist was built with DRAC support, 
+# then DRAC DB location can be specified here
+#drac db "/usr/local/etc/drac.db"
+
+# Uncomment if you want milter-greylist to remain
+# in the foreground (no daemon).
+# May be overridden by the "-D" command line argument.
+#nodetach
+
+# The user the milter should run as.
+# May be overridden by the "-u username" command line argument.
+#user "smmsp"
+user "mailgrey"

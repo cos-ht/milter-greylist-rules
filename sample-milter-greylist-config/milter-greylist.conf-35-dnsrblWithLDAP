@@ -1,0 +1,103 @@
+### This block is an example of DNS RBL config that can be enabled per-user
+### with a flag value plus the preference value(s) set in LDAP (via CURL).
+### Otherwise this setup can be used for each and every incoming message.
+
+### Config shared by different relays in the set:
+### $Id: milter-greylist.conf-35-dnsrblWithLDAP,v 1.15 2016/04/18 20:02:06 mailcvs Exp $
+
+# First - whitelist known-good sources (some providers do get blocked by DNSBL)
+#dnsrbl "DNSWL" list.dnswl.org 127.0.0.0/16
+
+### Give this a try if you enabled DNSRBL
+#dnsrbl "SPAMCOP BL" bl.spamcop.net 127.0.0.0/16
+###dnsrbl "ISP DUL" dul.ru 127.0.0.0/16
+###dnsrbl "SORBS DUN" dnsbl.sorbs.net 127.0.0.10
+###dnsrbl "SPAMHAUS SBL" sbl-xbl.spamhaus.org 127.0.0.2
+###dnsrbl "SPAMHAUS CBL" sbl-xbl.spamhaus.org 127.0.0.4
+###dnsrbl "SPAMHAUS NJABL" sbl-xbl.spamhaus.org 127.0.0.5
+#dnsrbl "SPAMHAUS PBL" zen.spamhaus.org 127.0.0.0/16
+#dnsrbl "SPAMHAUS CBL2" cbl.abuseat.org 127.0.0.0/16
+#dnsrbl "LASHBACK BL" ubl.unsubscore.com 127.0.0.2
+#dnsrbl "TRUNCATE BL" truncate.gbudb.net 127.0.0.2
+#dnsrbl "IMP-SWINOG SPAM BL" spamrbl.imp.ch 127.0.0.5
+#dnsrbl "IMP-SWINOG WORM BL" wormrbl.imp.ch 127.0.0.5
+#dnsrbl "IMP-SWINOG DNS BL" dnsrbl.swinog.ch 127.0.0.3
+#dnsrbl "UCEPROTECT-L1 BL" dnsbl-1.uceprotect.net 127.0.0.0/16
+#dnsrbl "UCEPROTECT-L2 BL" dnsbl-2.uceprotect.net 127.0.0.0/16
+#dnsrbl "UCEPROTECT-L3 BL" dnsbl-3.uceprotect.net 127.0.0.0/16
+#dnsrbl "BARRACUDA BL" b.barracudacentral.org 127.0.0.2
+
+
+# Whitelists first; no SMTP message involved - only logging
+#racl continue dnsrbl "DNSWL" \
+#	set $dnswl+=1 \
+#	log "MGL-TOLERATE-RBL: %P{conninfo}: dynamic-whitelisted by DNSWL; not rejecting outright if hits in DNSBL"
+
+
+# Here is an example of user preference pulled from a LDAP directory
+# (requires building --with-libcurl). If the milterGreylistStatus 
+# attribute is set to TRUE, then $usrRBL will be usable later in the
+# ACL and will carry the values of the usrRBL attribute.
+# urlcheck "userpref" \
+#	ldap://localhost/dc=example,dc=net?milterGreylistStatus,usrRBL?one?mail=%r" \
+#	30 getprop clear fork
+
+#racl blacklist urlcheck "userpref" $usrRBL "SPAMHAUS CBL" dnsrbl "SPAMHAUS CBL" \
+#		log "MGL-REJECT-RBL: %P{conninfo}: Sender IP caught in CBL blacklist" \
+#		msg "MGL-REJECT-RBL: Sender IP caught in CBL blacklist : %P{conninfo}"
+#racl blacklist $usrRBL "SPAMHAUS SBL" dnsrbl "SPAMHAUS SBL" \
+#		log "MGL-REJECT-RBL: %P{conninfo}: Sender IP caught in SBL blacklist" \
+#		msg "MGL-REJECT-RBL: Sender IP caught in SBL blacklist : %P{conninfo}"
+#racl blacklist $usrRBL "SPAMHAUS NJABL" dnsrbl "SPAMHAUS NJABL" \
+#		log "MGL-REJECT-RBL: %P{conninfo}: Sender IP caught in NJABL blacklist" \
+#		msg "MGL-REJECT-RBL: Sender IP caught in NJABL blacklist : %P{conninfo}"
+#racl greylist list "grey users" dnsrbl "SORBS DUN" delay 24h autowhite 3d \
+#		log "MGL-TEMPFAIL-RBL: %P{conninfo}: Sender IP caught in SORBS DUN list" \
+#		msg "MGL-TEMPFAIL-RBL: Sender IP caught in SORBS DUN list : %P{conninfo}"
+
+### Classic static blacklists for everyone:
+#racl blacklist dnsrbl "ISP DUL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: dul.ru: ISP-self-registered Dialup" \
+#	msg "MGL-REJECT-RBL: ISP-self-registered Dialup - Use mail relays of your ISP, see http://www.dul.ru/ : %P{conninfo}"
+#racl blacklist dnsrbl "SPAMHAUS PBL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: zen.spamhaus.org: PBL" \
+#	msg "MGL-REJECT-RBL: Spam blocked - see http://www.spamhaus.org/query/ip/%i : %P{conninfo}"
+#racl blacklist dnsrbl "SPAMHAUS CBL2" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: cbl.abuseat.org: SPAMHAUS CBL" \
+#	msg "MGL-REJECT-RBL: Spam source/open proxy is blocked - see http://cbl.abuseat.org/lookup.cgi?ip=%i : %P{conninfo}"
+#racl blacklist dnsrbl "SPAMCOP BL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: bl.spamcop.net" \
+#	msg "MGL-REJECT-RBL: Spam blocked - see http://spamcop.net/bl.shtml?%i : %P{conninfo}"
+#racl blacklist dnsrbl "LASHBACK BL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: ubl.unsubscore.com" \
+#	msg "MGL-REJECT-RBL: Spam blocked - see http://www.lashback.com/support/UnsubscribeBlacklistSupport.aspx : %P{conninfo}"
+#racl blacklist dnsrbl "TRUNCATE BL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: truncate.gbudb.net" \
+#	msg "MGL-REJECT-RBL: Spam blocked - see http://www.gbudb.com/ : %P{conninfo}"
+#racl blacklist dnsrbl "IMP-SWINOG SPAM BL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: spamrbl.imp.ch" \
+#	msg "MGL-REJECT-RBL: Spam blocked - see http://antispam.imp.ch/04-spamlist.html : %P{conninfo}"
+#racl blacklist dnsrbl "IMP-SWINOG WORM BL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: wormrbl.imp.ch" \
+#	msg "MGL-REJECT-RBL: Worm/virus source blocked - see http://antispam.imp.ch/03-wormlist.html : %P{conninfo}"
+#racl blacklist dnsrbl "IMP-SWINOG DNS BL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: dnsrbl.swinog.ch" \
+#	msg "MGL-REJECT-RBL: Spam blocked - see http://antispam.imp.ch/06-dnsbl.html : %P{conninfo}"
+#racl blacklist dnsrbl "UCEPROTECT-L1 BL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: dnsbl-1.uceprotect.net" \
+#	msg "MGL-REJECT-RBL: Spam blocked - see http://www.uceprotect.net/en/rblcheck.php?ipr=%i : %P{conninfo}"
+#racl blacklist dnsrbl "UCEPROTECT-L2 BL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: dnsbl-2.uceprotect.net" \
+#	msg "MGL-REJECT-RBL: Spam blocked - see http://www.uceprotect.net/en/rblcheck.php?ipr=%i : %P{conninfo}"
+#racl blacklist dnsrbl "UCEPROTECT-L3 BL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: dnsbl-3.uceprotect.net" \
+#	msg "MGL-REJECT-RBL: Spam blocked - see http://www.uceprotect.net/en/rblcheck.php?ipr=%i : %P{conninfo}"
+### Barracuda requires free registration of DNS servers, and is slower
+### to respond to queries (ask it last), but catches a lot of spammers
+### See: http://barracudacentral.org/account/register
+#racl blacklist dnsrbl "BARRACUDA BL" set $dnsbl+=1 $dnswl<1 \
+#	log "MGL-REJECT-RBL: %P{conninfo}: b.barracudacentral.org" \
+#	msg "MGL-REJECT-RBL: Spam blocked - see http://barracudacentral.org/lookups/lookup-reputation : %P{conninfo}"
+
+#racl continue $dnsbl>0 \
+#	log "MGL-STATS-RBL: %P{conninfo}: scored %P{dnsbl} DNSBL, %P{dnswl} DNSWL hits"

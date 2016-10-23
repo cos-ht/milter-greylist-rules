@@ -1,0 +1,22 @@
+### Networks and relays "trusted" by this relay's owner to submit SMTP without
+### any greylisting delays.
+
+### Config shared by different relays in the set:
+### $Id: milter-greylist.conf-20-whitelist-trustedNetworks,v 1.7 2014/12/23 21:10:38 jim Exp $
+
+#####################
+###   template:   ###
+#####################
+
+### Description: XXX_Template
+#list "trustednet-ipaddr-XXX" addr {	\
+#	IP.AD.DR.ESS(/BITS)	\
+#}
+#list "trustednet-domain-XXX" domain {	\
+#	DOMAIN.TO.ADD.ORG	\
+#}
+#racl whitelist list "trustednet-ipaddr-XXX" log "MGL-WHITELIST-SRC-TRUSTED: %P{conninfo}: static-whitelisted by rule %a, delay %R"
+#racl whitelist list "trustednet-domain-XXX" log "MGL-WHITELIST-SRC-TRUSTED: %P{conninfo}: static-whitelisted by rule %a, delay %R"
+
+### template
+

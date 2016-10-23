@@ -1,0 +1,38 @@
+= COS&HT template ruleset for `milter-greylist`
+
+The baseline ruleset template used in our setups of `milter-greylist`
+[http://hcpnet.free.fr/milter-greylist] on Milter API capable relays.
+
+This takes advantage of math expressions in Milter-Greylist to track
+"spamminess probability" scores that we assign to various inconsistencies
+in DNS setup and other considered factors, and ultimately set different
+greylist delays to incoming connections.
+
+Overall our relay setups follow the methodology of doing "computationally
+cheap" anti-spam actions first - starting with the SMTP banner delay so
+that bots which spew out bytes as soon as they connect (not doing the
+proper dialog) are kicked quickly.
+
+Then there is a place for DNS-based checks as organized for our case
+with `milter-greylist`, including patterns in host names that look like
+consumer/dial-up hosts, DNS RBL and DNS WL matches, not-too-permissive
+SPF settings, to name a few. Also if the mail relay is set up with `p0f`
+(passive fingerprinting daemon) support, matches for a desktop OS also
+get an "anti-bonus" for an increased delay in the greylist.
+
+Ultimately, some bots never come back after a first failure. Others can
+show up in the DNS RBLs by the time their greylist delay times out.
+
+These measures happen to be surprisingly effective, kicking 95-99% of
+incoming connections before the DATA stage, as our casual statistics
+inspection discovers.
+
+The few messages that remain (and sometimes do include spam too) can be
+inspected by more "computationally expensive" means such as ClamAV for
+viruses and SpamAssasin for content inspection and evaluation of spam
+vs. ham payloads of the messages.
+
+== History
+
+This configuration grew over time and software engines, and many pieces
+were in place (and in internal CVS) as early as 2002.

@@ -1,0 +1,14 @@
+### These rules allow to set a whitelist of senders (mails from them
+### should always pass quickly).
+
+### Config shared by different relays in the set:
+### $Id: milter-greylist.conf-11-whitelist-FROM,v 1.4 2014/12/23 19:15:08 jim Exp $
+
+##### Current rules:
+list "whitelist-FROM" from {	\
+	someonewetrust@other.company	\
+}
+
+racl whitelist list "whitelist-FROM" \
+	log "MGL-WHITELIST-FROM: %P{conninfo}: static-whitelisted by rule %a, delay %R" \
+	addheader "X-Greylist-Skipped: sender %f is static-whitelisted"
